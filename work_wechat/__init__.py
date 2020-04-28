@@ -6,6 +6,7 @@ import typing
 import urllib.parse
 
 import requests
+import requests_toolbelt
 
 
 class LikeDict(object):
@@ -67,6 +68,15 @@ class NewsArticle(LikeDict):
         super().__init__(**kwargs)
 
 
+class Media(object):
+    """https://work.weixin.qq.com/api/doc/90000/90135/90253"""
+
+    def __init__(self, file_path: str, file_name: str, file_type):
+        self.file_path = file_path
+        self.file_name = file_name
+        self.file_type = file_type
+
+
 class WorkWeChat(object):
 
     def __init__(self, corpid: str = None, corpsecret: str = None, verbose: bool = False, http_timeout: int = 5):
@@ -125,6 +135,39 @@ class WorkWeChat(object):
         if rs["errcode"] not in errcodes_accepted:
             raise WorkWeChatException(errcode=rs["errcode"], errmsg=rs["errmsg"], rs=rs)
 
+        return rs
+
+    def _post_form_data(
+            self,
+            path: str,
+            media: Media,
+            params_qs: dict = None,
+            errcodes_accepted: typing.Tuple[int, ...] = None,
+            auto_update_token: bool = True,
+    ) -> dict:
+
+        # https://work.weixin.qq.com/api/doc/90000/90135/90253
+        if not errcodes_accepted:
+            errcodes_accepted = (ErrCode.SUCCESS,)
+        if not params_qs:
+            params_qs = dict()
+
+        if auto_update_token:
+            params_qs["access_token"] = self.get_access_token()
+
+        qs = urllib.parse.urlencode(params_qs)
+
+        url = self._url_prefix + path + "?" + qs
+
+        m = requests_toolbelt.multipart.MultipartEncoder(
+            fields={'media': (media.file_name, open(media.file_path + media.file_name, 'rb'), '', {})},
+        )
+
+        r = requests.post(url=url, data=m, headers={'Content-Type': m.content_type})
+
+        rs = r.json()
+        if rs["errcode"] not in errcodes_accepted:
+            raise WorkWeChatException(errcode=rs["errcode"], errmsg=rs["errmsg"], rs=rs)
         return rs
 
     def gettoken(self) -> dict:
@@ -875,3 +918,96 @@ class WorkWeChat(object):
         }
         """
         return rs["active_cnt"]
+
+    def media_upload(self, media: Media) -> str:
+        """
+        https://work.weixin.qq.com/api/doc/90000/90135/90253
+        """
+        params_qs = dict(type=media.file_type, )
+
+        """
+        POST https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=accesstoken001&type=file HTTP/1.1
+        Content-Type: multipart/form-data; boundary=-------------------------acebdf13572468
+        Content-Length: 220
+        ---------------------------acebdf13572468
+        Content-Disposition: form-data; name="media";filename="wework.txt"; filelength=6
+        Content-Type: application/octet-stream
+        mytext
+        ---------------------------acebdf13572468--
+
+        """
+        errcodes_accepted = (ErrCode.SUCCESS, ErrCode.CHATID_INVALID)
+        rs = self._post_form_data(
+            path="/media/upload",
+            media=media,
+            params_qs=params_qs,
+            errcodes_accepted=errcodes_accepted,
+        )
+
+        return rs['media_id']
+
+    def message_send(self, msgtype: str, agentid: str, content: str, touser: str = None, toparty: str = None,
+                     totag: str = None,
+                     safe: int = 0, enable_id_trans: int = 0, enable_duplicate_check: int = 0,
+                     duplicate_check_interval: int = 1800):
+
+        """
+        https://work.weixin.qq.com/api/doc/90000/90135/90236
+        """
+        data = dict(msgtype=msgtype, agentid=agentid,
+                    enable_duplicate_check=enable_duplicate_check,
+                    enable_id_trans=enable_id_trans, duplicate_check_interval=duplicate_check_interval)
+        data[msgtype] = content
+        if touser:
+            data["touser"] = touser
+        if toparty:
+            data["toparty"] = toparty
+        if totag:
+            data["totag"] = totag
+        """
+        {
+           "touser" : "UserID1|UserID2|UserID3",
+           "toparty" : "PartyID1|PartyID2",
+           "totag" : "TagID1 | TagID2",
+           "msgtype" : "text",
+           "agentid" : 1,
+           "text" : {
+               "content" : "你的快递已到，请携带工卡前往邮件中心领取。\n出发前可查看<a href=\"http://work.weixin.qq.com\">邮件中心视频实况</a>，聪明避开排队。"
+           },
+           "safe":0,
+           "enable_id_trans": 0,
+           "enable_duplicate_check": 0,
+           "duplicate_check_interval": 1800
+        }
+        """
+
+        errcodes_accepted = (ErrCode.SUCCESS, ErrCode.CHATID_INVALID)
+        rs = self._send_req(
+            method="POST",
+            path="/message/send",
+            params_post=data,
+            errcodes_accepted=errcodes_accepted,
+        )
+
+    def update_taskcard(self, userids: typing.Tuple[str, ...], agentid: int, task_id: str, clicked_key: str):
+        """
+        https://work.weixin.qq.com/api/doc/90000/90135/91579
+        """
+        params_post = dict(userids=userids, agentid=agentid, task_id=task_id, clicked_key=clicked_key)
+        errcodes_accepted = (ErrCode.SUCCESS, ErrCode.CHATID_INVALID)
+        """
+        {
+            "userids" : ["userid1","userid2"],
+            "agentid" : 1,
+            "task_id": "taskid122",
+            "clicked_key": "btn_key123"
+        }   
+        """
+        rs = self._send_req(
+            method="POST",
+            path="/message/update_taskcard",
+            params_post=params_post,
+            errcodes_accepted=errcodes_accepted,
+        )
+        if rs["invaliduser"]:
+            print("以下用户无法进行更新: {} 原因可能是无效用户 ".format(rs["invaliduser"]))
