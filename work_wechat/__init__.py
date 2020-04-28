@@ -57,6 +57,18 @@ class QrCodeSizeType(object):
     EXTRA_LARGE = 4  # 2052x2052
 
 
+class MsgType:
+    TEXT = "text"
+    IMAGE = "image"
+    FILE = "file"
+    NEWS = "news"
+    VIDEO = "video"
+    TEXTCARD = "textcard"
+    MPNEWS = "mpnews"
+    MARKDOWN = "markdown"
+    TASKCARD = "taskcard"
+
+
 class NewsArticle(LikeDict):
     """ https://work.weixin.qq.com/help?doc_id=13376#图文类型 """
 
@@ -75,6 +87,112 @@ class Media(object):
         self.file_path = file_path
         self.file_name = file_name
         self.file_type = file_type
+
+
+class Video(object):
+    def __init__(self, media_id: str, title: str = None, description: str = None):
+        self.media_id = media_id
+        if title:
+            self.title = title
+        if description:
+            self.description = description
+
+    def to_dict(self):
+        return {dict(media_id=self.media_id, title=self.title, description=self.description)}
+
+
+class Btn(object):
+    def __int__(self, key: str, name: str, replace_name: str, color=None, is_bold=None):
+        self.key = key
+        self.name = name
+        self.replace_name = replace_name
+        if color is not None:
+            self.color = color
+        if is_bold is not None:
+            self.is_bold = is_bold
+
+    def to_dict(self) -> dict:
+        a = dict(key=self.key, name=self.name, replace_name=self.replace_name)
+        if hasattr(self, 'color'):
+            a['color'] = self.color
+        if hasattr(self, 'is_bold'):
+            a['is_bold'] = self.is_bold
+        return a
+
+
+class TextCard(object):
+
+    def __init__(
+            self,
+            title: str,
+            description: str,
+            url: str,
+            btntxt: str
+    ):
+        self.title = title
+        self.description = description
+        self.url = url
+        self.btntxt = btntxt
+
+    def to_dict(self) -> dict:
+        return dict(title=self.title, description=self.description, url=self.url, btntxt=self.btntxt)
+
+
+class TaskCard(object):
+    def __init__(
+            self,
+            title: str,
+            description: str,
+            url: str,
+            task_id: str,
+            btn: typing.Tuple[Btn]
+    ):
+        self.title = title
+        self.description = description
+        self.url = url
+        self.btn = btn
+
+    def to_dict(self) -> dict:
+        return dict(title=self.title, description=self.description, url=self.url, btntxt=self.btn)
+
+
+class News(object):
+    def __init__(self, picurl: str, title: str, description: str, url: str):
+        self.title = title
+        self.description = description
+        self.url = url
+        self.picurl = picurl
+
+    def to_dict(self) -> dict:
+        return dict(title=self.title, description=self.description, url=self.url, picurl=self.picurl)
+
+
+class MpNew(object):
+    def __init__(
+            self,
+            title: str,
+            thumb_media_id: str,
+            author: str,
+            content_source_url: str,
+            content: str,
+            digest: str
+    ):
+        self.title = title
+        self.thumb_media_id = thumb_media_id
+        self.author = author
+        self.content_source_url = content_source_url
+        self.content = content
+        self.digest = digest
+
+    def to_dict(self) -> dict:
+        return dict(
+            title=self.title,
+            thumb_media_id=self.thumb_media_id,
+            author=self.author,
+            content_source_url=self.content_source_url,
+            content=self.content,
+            digest=self.digest
+        )
 
 
 class WorkWeChat(object):
@@ -936,28 +1054,68 @@ class WorkWeChat(object):
         ---------------------------acebdf13572468--
 
         """
-        errcodes_accepted = (ErrCode.SUCCESS, ErrCode.CHATID_INVALID)
         rs = self._post_form_data(
             path="/media/upload",
             media=media,
             params_qs=params_qs,
-            errcodes_accepted=errcodes_accepted,
+
         )
 
         return rs['media_id']
 
-    def message_send(self, msgtype: str, agentid: str, content: str, touser: str = None, toparty: str = None,
+    def message_send(self,
+                     msgtype: str,
+                     agentid: str,
+                     text_content: str = None,
+                     image_media_id: str = None,
+                     video_media_id: str = None,
+                     video: Video = None,
+                     file_media_id: str = None,
+                     textcard: TextCard = None,
+                     news_articles: typing.Tuple[News] = None,
+                     mpnews_articles: MpNew = None,
+                     markdown_content: str = None,
+                     taskcard: TaskCard = None,
+                     touser: str = None,
+                     toparty: str = None,
                      totag: str = None,
-                     safe: int = 0, enable_id_trans: int = 0, enable_duplicate_check: int = 0,
+                     safe: int = 0,
+                     enable_id_trans: int = 0,
+                     enable_duplicate_check: int = 0,
                      duplicate_check_interval: int = 1800):
 
         """
         https://work.weixin.qq.com/api/doc/90000/90135/90236
         """
-        data = dict(msgtype=msgtype, agentid=agentid,
-                    enable_duplicate_check=enable_duplicate_check,
-                    enable_id_trans=enable_id_trans, duplicate_check_interval=duplicate_check_interval)
-        data[msgtype] = content
+        data = dict(
+            msgtype=msgtype,
+            agentid=agentid,
+            enable_duplicate_check=enable_duplicate_check,
+            enable_id_trans=enable_id_trans,
+            duplicate_check_interval=duplicate_check_interval
+        )
+
+        object_type_dict = dict(
+            news=news_articles,
+            video=video,
+            textcard=textcard,
+            mpnews=mpnews_articles,
+            taskcard=taskcard
+        )
+
+        if msgtype == MsgType.TEXT:
+            data[msgtype] = dict(content=text_content)
+        elif msgtype == MsgType.VIDEO and video_media_id is not None:
+            data[msgtype] = dict(media_id=video_media_id)
+        elif msgtype == MsgType.FILE:
+            data[msgtype] = dict(media_id=file_media_id)
+        elif msgtype == MsgType.IMAGE:
+            data[msgtype] = dict(media_id=image_media_id)
+        elif msgtype == MsgType.NEWS or msgtype == MsgType.MPNEWS:
+            data[msgtype] = dict(articles=[object_type_dict[msgtype].to_dict()])
+        else:
+            data[msgtype] = object_type_dict[msgtype].to_dict()
+        #print(data)
         if touser:
             data["touser"] = touser
         if toparty:
@@ -981,12 +1139,10 @@ class WorkWeChat(object):
         }
         """
 
-        errcodes_accepted = (ErrCode.SUCCESS, ErrCode.CHATID_INVALID)
         rs = self._send_req(
             method="POST",
             path="/message/send",
             params_post=data,
-            errcodes_accepted=errcodes_accepted,
         )
 
     def update_taskcard(self, userids: typing.Tuple[str, ...], agentid: int, task_id: str, clicked_key: str):
@@ -1009,5 +1165,3 @@ class WorkWeChat(object):
             params_post=params_post,
             errcodes_accepted=errcodes_accepted,
         )
-        if rs["invaliduser"]:
-            print("以下用户无法进行更新: {} 原因可能是无效用户 ".format(rs["invaliduser"]))
