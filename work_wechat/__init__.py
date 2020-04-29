@@ -7,6 +7,7 @@ import urllib.parse
 
 import requests
 import requests_toolbelt
+import collections
 
 
 class LikeDict(object):
@@ -81,7 +82,7 @@ class NewsArticle(LikeDict):
 
 
 class Media(object):
-    """https://work.weixin.qq.com/api/doc/90000/90135/90253"""
+    """https://work.weixin.qq.com/api/doc/90000/90135/90253#临时媒体类型"""
 
     def __init__(self, file_path: str, file_name: str, file_type):
         self.file_path = file_path
@@ -89,110 +90,62 @@ class Media(object):
         self.file_type = file_type
 
 
-class Video(object):
-    def __init__(self, media_id: str, title: str = None, description: str = None):
-        self.media_id = media_id
-        if title:
-            self.title = title
-        if description:
-            self.description = description
+class Video(LikeDict):
+    """https://work.weixin.qq.com/api/doc/90000/90135/90236#视频类型"""
 
-    def to_dict(self):
-        return {dict(media_id=self.media_id, title=self.title, description=self.description)}
+    def __init__(self, **kwargs):
+        self.media_id = None
+        self.title = None
+        self.description = None
+        super().__init__(**kwargs)
 
 
-class Btn(object):
-    def __int__(self, key: str, name: str, replace_name: str, color=None, is_bold=None):
-        self.key = key
-        self.name = name
-        self.replace_name = replace_name
-        if color is not None:
-            self.color = color
-        if is_bold is not None:
-            self.is_bold = is_bold
+class Btn(LikeDict):
+    """https://work.weixin.qq.com/api/doc/90000/90135/90253#按键类型"""
 
-    def to_dict(self) -> dict:
-        a = dict(key=self.key, name=self.name, replace_name=self.replace_name)
-        if hasattr(self, 'color'):
-            a['color'] = self.color
-        if hasattr(self, 'is_bold'):
-            a['is_bold'] = self.is_bold
-        return a
+    def __init__(self, **kwargs):
+        self.key = None
+        self.name = None
+        self.replace_name = None
+        self.color = None
+        self.is_bold = None
+        super().__init__(**kwargs)
 
 
-class TextCard(object):
+class TextCard(LikeDict):
+    """https://work.weixin.qq.com/api/doc/90000/90135/90236#文本卡片信息"""
 
-    def __init__(
-            self,
-            title: str,
-            description: str,
-            url: str,
-            btntxt: str
-    ):
-        self.title = title
-        self.description = description
-        self.url = url
-        self.btntxt = btntxt
-
-    def to_dict(self) -> dict:
-        return dict(title=self.title, description=self.description, url=self.url, btntxt=self.btntxt)
+    def __init__(self, **kwargs):
+        self.title = None
+        self.description = None
+        self.url = None
+        self.btntxt = None
+        super().__init__(**kwargs)
 
 
-class TaskCard(object):
-    def __init__(
-            self,
-            title: str,
-            description: str,
-            url: str,
-            task_id: str,
-            btn: typing.Tuple[Btn]
-    ):
-        self.title = title
-        self.description = description
-        self.url = url
-        self.btn = btn
+class TaskCard(LikeDict):
+    """https://work.weixin.qq.com/api/doc/90000/90135/90236#任务卡片信息"""
 
-    def to_dict(self) -> dict:
-        return dict(title=self.title, description=self.description, url=self.url, btntxt=self.btn)
+    def __init__(self, **kwargs):
+        self.title = None
+        self.description = None
+        self.url = None
+        self.btn = None
+        self.task_id = None
+        super().__init__(**kwargs)
 
 
-class News(object):
-    def __init__(self, picurl: str, title: str, description: str, url: str):
-        self.title = title
-        self.description = description
-        self.url = url
-        self.picurl = picurl
+class MpNew(LikeDict):
+    """https://work.weixin.qq.com/api/doc/90000/90135/90236#图文信息(mpnews)"""
 
-    def to_dict(self) -> dict:
-        return dict(title=self.title, description=self.description, url=self.url, picurl=self.picurl)
-
-
-class MpNew(object):
-    def __init__(
-            self,
-            title: str,
-            thumb_media_id: str,
-            author: str,
-            content_source_url: str,
-            content: str,
-            digest: str
-    ):
-        self.title = title
-        self.thumb_media_id = thumb_media_id
-        self.author = author
-        self.content_source_url = content_source_url
-        self.content = content
-        self.digest = digest
-
-    def to_dict(self) -> dict:
-        return dict(
-            title=self.title,
-            thumb_media_id=self.thumb_media_id,
-            author=self.author,
-            content_source_url=self.content_source_url,
-            content=self.content,
-            digest=self.digest
-        )
+    def __init__(self, **kwargs):
+        self.title = None
+        self.thumb_media_id = None
+        self.author = None
+        self.content_source_url = None
+        self.content = None
+        self.digest = None
+        super().__init__(**kwargs)
 
 
 class WorkWeChat(object):
@@ -1066,15 +1019,12 @@ class WorkWeChat(object):
     def message_send(self,
                      msgtype: str,
                      agentid: str,
-                     text_content: str = None,
-                     image_media_id: str = None,
-                     video_media_id: str = None,
+                     content: str = None,
+                     media_id: str = None,
                      video: Video = None,
-                     file_media_id: str = None,
                      textcard: TextCard = None,
-                     news_articles: typing.Tuple[News] = None,
-                     mpnews_articles: MpNew = None,
-                     markdown_content: str = None,
+                     news_articles: typing.Tuple[NewsArticle] = None,
+                     mpnews_articles: typing.Tuple[MpNew] = None,
                      taskcard: TaskCard = None,
                      touser: str = None,
                      toparty: str = None,
@@ -1103,19 +1053,20 @@ class WorkWeChat(object):
             taskcard=taskcard
         )
 
-        if msgtype == MsgType.TEXT:
-            data[msgtype] = dict(content=text_content)
-        elif msgtype == MsgType.VIDEO and video_media_id is not None:
-            data[msgtype] = dict(media_id=video_media_id)
-        elif msgtype == MsgType.FILE:
-            data[msgtype] = dict(media_id=file_media_id)
-        elif msgtype == MsgType.IMAGE:
-            data[msgtype] = dict(media_id=image_media_id)
+        if msgtype == MsgType.TEXT or msgtype == MsgType.MARKDOWN:
+            data[msgtype] = dict(content=content)
+        elif msgtype == MsgType.VIDEO and media_id is not None:
+            data[msgtype] = dict(media_id=media_id)
+        elif msgtype == MsgType.FILE or msgtype == MsgType.IMAGE:
+            data[msgtype] = dict(media_id=media_id)
         elif msgtype == MsgType.NEWS or msgtype == MsgType.MPNEWS:
-            data[msgtype] = dict(articles=[object_type_dict[msgtype].to_dict()])
+            if isinstance(object_type_dict[msgtype], collections.Iterable):
+                data[msgtype] = dict(articles=[i.to_dict() for i in object_type_dict[msgtype]])
+            else:
+                data[msgtype] = dict(articles=[object_type_dict[msgtype].to_dict()])
         else:
             data[msgtype] = object_type_dict[msgtype].to_dict()
-        #print(data)
+
         if touser:
             data["touser"] = touser
         if toparty:
