@@ -61,9 +61,11 @@ class QrCodeSizeType(object):
 class MsgType:
     TEXT = "text"
     IMAGE = "image"
+
     FILE = "file"
     NEWS = "news"
     VIDEO = "video"
+
     TEXTCARD = "textcard"
     MPNEWS = "mpnews"
     MARKDOWN = "markdown"
@@ -76,8 +78,10 @@ class NewsArticle(LikeDict):
     def __init__(self, **kwargs):
         self.title = None
         self.description = None
+
         self.url = None
         self.picurl = None
+
         super().__init__(**kwargs)
 
 
@@ -86,6 +90,7 @@ class Media(object):
 
     def __init__(self, file_path: str, file_name: str, file_type):
         self.file_path = file_path
+
         self.file_name = file_name
         self.file_type = file_type
 
@@ -97,6 +102,7 @@ class Video(LikeDict):
         self.media_id = None
         self.title = None
         self.description = None
+
         super().__init__(**kwargs)
 
 
@@ -106,9 +112,11 @@ class Btn(LikeDict):
     def __init__(self, **kwargs):
         self.key = None
         self.name = None
+
         self.replace_name = None
         self.color = None
         self.is_bold = None
+
         super().__init__(**kwargs)
 
 
@@ -118,8 +126,10 @@ class TextCard(LikeDict):
     def __init__(self, **kwargs):
         self.title = None
         self.description = None
+
         self.url = None
         self.btntxt = None
+
         super().__init__(**kwargs)
 
 
@@ -129,9 +139,11 @@ class TaskCard(LikeDict):
     def __init__(self, **kwargs):
         self.title = None
         self.description = None
+
         self.url = None
         self.btn = None
         self.task_id = None
+
         super().__init__(**kwargs)
 
 
@@ -141,10 +153,12 @@ class MpNew(LikeDict):
     def __init__(self, **kwargs):
         self.title = None
         self.thumb_media_id = None
+
         self.author = None
         self.content_source_url = None
         self.content = None
         self.digest = None
+
         super().__init__(**kwargs)
 
 
@@ -1016,23 +1030,25 @@ class WorkWeChat(object):
 
         return rs['media_id']
 
-    def message_send(self,
-                     msgtype: str,
-                     agentid: str,
-                     content: str = None,
-                     media_id: str = None,
-                     video: Video = None,
-                     textcard: TextCard = None,
-                     news_articles: typing.Tuple[NewsArticle] = None,
-                     mpnews_articles: typing.Tuple[MpNew] = None,
-                     taskcard: TaskCard = None,
-                     touser: str = None,
-                     toparty: str = None,
-                     totag: str = None,
-                     safe: int = 0,
-                     enable_id_trans: int = 0,
-                     enable_duplicate_check: int = 0,
-                     duplicate_check_interval: int = 1800):
+    def message_send(
+            self,
+            msgtype: str,
+            agentid: str,
+            content: str = None,
+            media_id: str = None,
+            video: Video = None,
+            textcard: TextCard = None,
+            news_articles: typing.Tuple[NewsArticle] = None,
+            mpnews_articles: typing.Tuple[MpNew] = None,
+            taskcard: TaskCard = None,
+            touser: str = None,
+            toparty: str = None,
+            totag: str = None,
+            safe: int = 0,
+            enable_id_trans: int = 0,
+            enable_duplicate_check: int = 0,
+            duplicate_check_interval: int = 1800
+    ):
 
         """
         https://work.weixin.qq.com/api/doc/90000/90135/90236

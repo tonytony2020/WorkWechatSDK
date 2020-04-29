@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 import os
 
 import work_wechat
@@ -15,6 +13,7 @@ def send_text_message():
     """发送文本信息"""
     text_content = " 你的快递已到，请携带工卡前往邮件中心领取。" \
                    "\n出发前可查看<a href=\"http://work.weixin.qq.com\">邮件中心视频实况</a>，聪明避开排队。"
+
     touser = "Jense"
     ww.message_send(agentid=agentid, content=text_content, touser=touser, msgtype="text")
 
@@ -23,8 +22,10 @@ def send_image_message():
     """发送照片信息"""
     file_path = 'D:/'
     file_name = "jense.jpg"
+
     media = work_wechat.Media(file_path=file_path, file_name=file_name, file_type='image')
     touser = 'Jense'
+
     media_id = ww.media_upload(media=media)
     ww.message_send(agentid=agentid, msgtype="image", touser=touser, media_id=media_id)
 
@@ -33,11 +34,11 @@ def send_video_message():
     """发送语音信息"""
     file_path = 'D:/'
     file_name = "test.mp3"
+
     media = work_wechat.Media(file_path=file_path, file_name=file_name, file_type='video')
     touser = 'Jense'
-    # print(media)
+
     media_id = ww.media_upload(media=media)
-    # print(media_id)
     ww.message_send(agentid=agentid, msgtype="video", touser=touser, media_id=media_id)
 
 
@@ -45,11 +46,11 @@ def send_video_mp4_message():
     """发送语音信息"""
     file_path = 'D:/'
     file_name = "video.mp4"
+
     media = work_wechat.Media(file_path=file_path, file_name=file_name, file_type='video')
     touser = 'Jense'
-    # print(media)
+
     media_id = ww.media_upload(media=media)
-    # print(media_id)
     ww.message_send(agentid=agentid, msgtype="video", touser=touser, media_id=media_id)
 
 
@@ -57,9 +58,11 @@ def send_file_message():
     """发送文件信息"""
     file_path = 'D:/'
     file_name = "啊.txt"
+
     media = work_wechat.Media(file_path=file_path, file_name=file_name, file_type='file')
-    touser = 'Jense'
     media_id = ww.media_upload(media=media)
+
+    touser = 'Jense'
     ww.message_send(agentid=agentid, msgtype="file", touser=touser, media_id=media_id)
 
 
@@ -71,6 +74,7 @@ def send_text_card_meesage():
         url="https://work.weixin.qq.com",
         btntxt="更多"
     )
+
     touser = 'Jense'
 
     ww.message_send(agentid=agentid, msgtype="textcard", touser=touser, textcard=textcard)
@@ -86,6 +90,7 @@ def send_news_message():
     )
 
     touser = 'Jense'
+
     ww.message_send(agentid=agentid, msgtype="news", touser=touser, news_articles=(news_articles1))
 
 
@@ -104,6 +109,7 @@ def send_mpnews_message():
         content="正文内容，支持HTML标签",
         digest="这是我的微信头像"
     )
+
     mpnew_articles2 = work_wechat.MpNew(
         title="WorkWeChat 图文信息推送测试",
         thumb_media_id=media_id,
@@ -112,6 +118,7 @@ def send_mpnews_message():
         content="正文内容，支持HTML标签,啦啦啦",
         digest="微信头像"
     )
+
     touser = 'Jense'
 
     ww.message_send(
@@ -124,33 +131,33 @@ def send_mpnews_message():
 
 def send_markdown_message():
     """发送markdown信息"""
-    markdown_content = (
-        "您的会议室已经预定  \n"
-        "稍后会同步到`邮箱`  \n"
-        ">**事项详情**  \n"
-        ">事　项：<font color=\"info\">开会</font>  \n"
-        ">组织者：@miglioguan  \n"
-        ">参与者：@miglioguan、@kunliu、@jamdeezhou、@kanexiong、@kisonwang\n"
-        ">\n"
-        ">会议室：<font color=\"info\">广州TIT 1楼 301</font>\n"
-        ">日　期：<font color=\"warning\">2018年5月18日</font>\n"
-        ">时　间：<font color=\"comment\">上午9:00-11:00</font>\n"
-        ">\n"
-        " >请准时参加会议。\n"
-        " >\n"
-        " >如需修改会议信息，请点击：[修改会议信息](https://work.weixin.qq.com)\n"
-    )
-    print(markdown_content)
+
+    markdown_content = """您的会议室已经预定，稍后会同步到`邮箱` 
+                >**事项详情** 
+                >事　项：<font color=\"info\">开会</font> 
+                >组织者：@miglioguan 
+                >参与者：@miglioguan、@kunliu、@jamdeezhou、@kanexiong、@kisonwang 
+                > 
+                >会议室：<font color=\"info\">广州TIT 1楼 301</font> 
+                >日　期：<font color=\"warning\">2018年5月18日</font> 
+                >时　间：<font color=\"comment\">上午9:00-11:00</font> 
+                > 
+                >请准时参加会议。 
+                > 
+                >如需修改会议信息，请点击：[修改会议信息](https://work.weixin.qq.com)"""
+
     touser = 'Jense'
+
     ww.message_send(agentid=agentid, msgtype='markdown', touser=touser, content=markdown_content)
 
 
 def send_task_card_message():
     """发送任务卡片"""
-    task_id = '23436'
+    task_id = '23rsd3436'
     btn1 = work_wechat.Btn(key="key111", name="批准", replace_name="已批准", color="red", is_bold=True)
     btn2 = work_wechat.Btn(key="key222", name="驳回", replace_name="已驳回")
     btnList = [btn1.to_dict(), btn2.to_dict()]
+
     task_card = work_wechat.TaskCard(
         title="Jense的礼品申请",
         url="https://qyapi.weixin.qq.com",
@@ -158,6 +165,7 @@ def send_task_card_message():
         description="礼品：A31茶具套装<br>用途：赠与小黑科技张总经理",
         btn=btnList
     )
+
     touser = 'Jense'
 
     ww.message_send(agentid=agentid, taskcard=task_card, touser=touser, msgtype="taskcard")
@@ -165,11 +173,13 @@ def send_task_card_message():
 
 send_text_message()
 send_image_message()
+
 send_video_message()
 send_video_mp4_message()
-send_file_message()
 
+send_file_message()
 send_text_card_meesage()
+
 send_news_message()
 send_mpnews_message()
 
