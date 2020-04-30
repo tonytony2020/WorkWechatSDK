@@ -1149,7 +1149,24 @@ class WorkWeChat(object):
             path="/message/get_statistics",
             params_post=params_post
         )
-
+        # 返回结果
+        """
+        {
+           "errcode" : 0,
+           "errmsg" : "ok",
+           "statistics": [
+               {
+                    "agentid": 1000002,
+                   "app_name": "应用1",
+                   "count": 101
+               }，
+               {
+                   "agentid": 1000003,
+                   "app_name": "应用2",
+                   "count": 102
+               }
+           ]
+        }
+        """
         data = rs["statistics"]
         return data
-
