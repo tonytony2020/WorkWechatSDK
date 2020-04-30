@@ -1132,3 +1132,24 @@ class WorkWeChat(object):
             params_post=params_post,
             errcodes_accepted=errcodes_accepted,
         )
+
+    def message_get_statistics(self, time_type: int = 0):
+        """
+        https://work.weixin.qq.com/api/doc/90000/90135/92369
+        """
+        params_post = dict(time_type=time_type)
+
+        """
+        {
+           "time_type": 0
+        }
+        """
+        rs = self._send_req(
+            method="POST",
+            path="/message/get_statistics",
+            params_post=params_post
+        )
+
+        data = rs["statistics"]
+        return data
+

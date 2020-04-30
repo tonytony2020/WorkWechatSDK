@@ -4,15 +4,15 @@ import work_wechat
 
 corpid = os.environ.get("CORPID")
 corpsecret = os.environ.get("CORPSECRET")
-agentid = os.environ.get("agentid")
+agentid = os.environ.get("AGENTID")
 
 ww = work_wechat.WorkWeChat(corpid=corpid, corpsecret=corpsecret)
 
 
 def send_text_message():
     """发送文本信息"""
-    text_content = " 你的快递已到，请携带工卡前往邮件中心领取。" \
-                   "\n出发前可查看<a href=\"http://work.weixin.qq.com\">邮件中心视频实况</a>，聪明避开排队。"
+    text_content = """ 你的快递已到，请携带工卡前往邮件中心领取。
+                   \n出发前可查看<a href=\"http://work.weixin.qq.com\">邮件中心视频实况</a>，聪明避开排队。"""
 
     touser = "Jense"
     ww.message_send(agentid=agentid, content=text_content, touser=touser, msgtype="text")

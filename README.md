@@ -52,7 +52,7 @@ A non-official WorkWeChat SDK in Pythonic Python.
 接收消息与事件 | TBD.
 发送消息到群聊会话 | 已完成
 互联企业消息推送 | TBD.
-查询应用消息发送统计 | TBD.
+查询应用消息发送统计 | 已完成
 
 
 其他
@@ -148,7 +148,7 @@ corpsecret 其实是 自建或内置应用(agent) 对应的 Secret，起这个�
         # errcode 和 errmsg 分别对应接口响应中字段，ex.rs 为完整 HTTP response
         print(ex.errcode, ex.errmsg, ex.rs)
 
-例子：发送图文信息https://work.weixin.qq.com/api/doc/90000/90135/90236
+例子：发送图文信息(https://work.weixin.qq.com/api/doc/90000/90135/90236)
 
     import os
 
@@ -158,70 +158,28 @@ corpsecret 其实是 自建或内置应用(agent) 对应的 Secret，起这个�
     corpsecret = os.environ.get("CORPSECRET")
     agentid = os.environ.get("agentid")
 
-    def send_news_message():
-        """发送图文信息"""
+    #发送图文信息
+    news_articles1 = work_wechat.NewsArticle(
+        picurl="http://wwcdn.weixin.qq.com/node/wwnl/wwnl/style/images/independent/favicon/favicon_48h$c976bd14.png",
+        title="图文信息发送测试",
         
-        news_articles1 = work_wechat.NewsArticle(
-            picurl="http://wwcdn.weixin.qq.com/node/wwnl/wwnl/style/images/independent/favicon/favicon_48h$c976bd14.png",
-            title="图文信息发送测试",
-            ''''''
-        )
-        
-        touser = 'Jense'
-        
-        ww.message_send(agentid=agentid, msgtype="news", touser=touser, news_articles=(news_articles1))
-    
-    
-NewsArticle用于规范数据接口，其定义在__init__.py文件中，具体定义如下:
-    
-    class LikeDict(object):
-        def __init__(self, **kwargs):
-            self.update(**kwargs)
-    
-        def to_dict(self) -> dict:
-            return dict((k, v) for k, v in self.__dict__.items() if not k.startswith("_"))
-    
-        def update(self, **kwargs):
-            for k, v in kwargs.items():
-                if k in self.__dict__:
-                    self.__dict__[k] = v
-                
-    class NewsArticle(LikeDict):
-        """ https://work.weixin.qq.com/help?doc_id=13376#图文类型 """
+        url="https://work.weixin.qq.com/api/doc/90000/90135/90236#%E6%96%87%E4%BB%B6%E6%B6%88%E6%81%AF",
+        description="详情"
+    )
 
-        def __init__(self, **kwargs):
-        
-            self.title = None
-            self.description = None
-            
-            self.url = None
-            self.picurl = None
-            
-            super().__init__(**kwargs)
-    
-例子： 发送卡片信息(https://work.weixin.qq.com/api/doc/90000/90135/90236)
-    
-    import os
+    touser = 'Jense'
 
-    import work_wechat
+    ww.message_send(agentid=agentid, msgtype="news", touser=touser, news_articles=(news_articles1))
     
-    corpid = os.environ.get("CORPID")
-    corpsecret = os.environ.get("CORPSECRET")
-    agentid = os.environ.get("agentid")
     
-    def send_file_message():
-        """发送文件信息"""
-        
-        file_path = 'D:/'
-        file_name = "啊.txt"
-        
-        media = work_wechat.Media(file_path=file_path, file_name=file_name, file_type='file')
-        media_id = ww.media_upload(media=media)
-        
-        touser = 'Jense'
-        
-        ww.message_send(agentid=agentid, msgtype="file", touser=touser, media_id=media_id)
+例子： 发送文本信息(https://work.weixin.qq.com/api/doc/90000/90135/90236)
     
+    text_content = """ 你的快递已到，请携带工卡前往邮件中心领取。
+                   \n出发前可查看<a href=\"http://work.weixin.qq.com\">邮件中心视频实况</a>，聪明避开排队。"""
+
+    touser = "Jense"
+    ww.message_send(agentid=agentid, content=text_content, touser=touser, msgtype="text")
+
     
 
 
