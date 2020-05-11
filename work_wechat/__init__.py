@@ -72,13 +72,9 @@ class MsgType:
 
 
 MIMETYPE2WWTYPE = {
-
     "image/jpeg": "image",
-
     "audio/amr": "voice",
-
     "video/mp4": "video",
-
 }
 
 DEFAULT_CONTENT_TYPE = 'file'
@@ -207,6 +203,7 @@ class WorkWeChat(object):
             path: str,
             params_qs: dict = None,
             params_post: dict = None,
+            params_post_files: typing.Dict[str, typing.Tuple[str, typing.BinaryIO, str]] = None,
             errcodes_accepted: typing.Tuple[int, ...] = None,
             auto_update_token: bool = True,
     ) -> dict:
@@ -228,7 +225,13 @@ class WorkWeChat(object):
 
         if self._verbose:
             logging.debug("%s %s" % (method, url))
-        r = requests.request(method=method, url=url, timeout=self._http_timeout, data=data_post)
+        r = requests.request(
+            method=method,
+            url=url,
+            timeout=self._http_timeout,
+            data=data_post,
+            files=params_post_files
+        )
         assert r.status_code == 200, r.headers
         rs = r.json()
         if rs["errcode"] not in errcodes_accepted:
@@ -1002,16 +1005,10 @@ class WorkWeChat(object):
         ---------------------------acebdf13572468--
 
         """
-        params_qs["access_token"] = self.get_access_token()
-        qs = urllib.parse.urlencode(params_qs)
-        url = self._url_prefix + "/media/upload" + "?" + qs
         files = {
-            "media": (media.file_name, media.file_data, media.file_data)
+            "media": (media.file_name, media.file_data, media.file_type)
         }
-        r = requests.post(
-            url=url,
-            files=files,
-        )
+        rs = self._send_req(method="POST", path="/media/upload", params_post_files=files, params_qs=params_qs)
         """
         {
            "errcode": 0,
@@ -1021,10 +1018,6 @@ class WorkWeChat(object):
            "created_at": "1380000000"
         }
         """
-        rs = r.json()
-
-        if rs["errcode"] is not ErrCode.SUCCESS:
-            raise WorkWeChatException(errcode=rs["errcode"], errmsg=rs["errmsg"], rs=rs)
 
         return rs['media_id']
 
@@ -1040,13 +1033,13 @@ class WorkWeChat(object):
             mpnews_articles: typing.Tuple[MpNew, ...] = None,
             taskcard: TaskCard = None,
             touser: typing.Tuple[str, ...] = None,
-            toparty: str = None,
-            totag: str = None,
+            toparty: typing.Tuple[str, ...] = None,
+            totag: typing.Tuple[str, ...] = None,
             safe: int = 0,
             enable_id_trans: int = 0,
             enable_duplicate_check: int = 0,
             duplicate_check_interval: int = 1800
-    ) -> str:
+    ) -> dict:
 
         """
         https://work.weixin.qq.com/api/doc/90000/90135/90236
@@ -1078,12 +1071,11 @@ class WorkWeChat(object):
             data[msgtype] = object_type_dict[msgtype].to_dict()
 
         if touser:
-            user = [user + '|' for user in touser]
-            data["touser"] = ''.join(user)
+            data["touser"] = '|'.join(touser)
         if toparty:
-            data["toparty"] = toparty
+            data["toparty"] = '|'.join(toparty)
         if totag:
-            data["totag"] = totag
+            data["totag"] = '|'.join(totag)
         """
         {
            "touser" : "UserID1|UserID2|UserID3",
@@ -1115,8 +1107,13 @@ class WorkWeChat(object):
            "invalidtag": "tagid1|tagid2"
          }
         """
-
-        return rs["invaliduser"]
+        rs = copy.deepcopy(rs)
+        for i in (
+                "errcode",
+                "errmsg",
+        ):
+            rs.pop(i)
+        return rs
 
     def update_taskcard(
             self,
@@ -1129,7 +1126,6 @@ class WorkWeChat(object):
         https://work.weixin.qq.com/api/doc/90000/90135/91579
         """
         params_post = dict(userids=userids, agentid=agentid, task_id=task_id, clicked_key=clicked_key)
-        errcodes_accepted = (ErrCode.SUCCESS, ErrCode.CHATID_INVALID)
         """
         {
             "userids" : ["userid1","userid2"],
@@ -1141,8 +1137,7 @@ class WorkWeChat(object):
         rs = self._send_req(
             method="POST",
             path="/message/update_taskcard",
-            params_post=params_post,
-            errcodes_accepted=errcodes_accepted,
+            params_post=params_post
         )
         """
          {

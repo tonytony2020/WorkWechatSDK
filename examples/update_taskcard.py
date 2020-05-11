@@ -2,7 +2,6 @@ import os
 import uuid
 
 import work_wechat
-import time
 
 corpid = os.environ.get("CORPID")
 corpsecret = os.environ.get("CORPSECRET")
@@ -26,9 +25,7 @@ task_card = work_wechat.TaskCard(
 )
 
 touser = ('Jense',)
-
 ww.message_send(agentid=agentid, taskcard=task_card, touser=touser, msgtype="taskcard")
 
-userids = ('Jense',)
-
+userids = ('Jense', 'Tony')
 ww.update_taskcard(agentid=agentid, task_id=task_id, clicked_key='key222', userids=userids)

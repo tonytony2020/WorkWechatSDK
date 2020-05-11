@@ -92,7 +92,7 @@ def send_news_message():
     news_articles1 = work_wechat.NewsArticle(
         picurl="http://wwcdn.weixin.qq.com/node/wwnl/wwnl/style/images/independent/favicon/favicon_48h$c976bd14.png",
         title="图文信息发送测试",
-        url="https://work.weixin.qq.com/api/doc/90000/90135/90236#%E6%96%87%E4%BB%B6%E6%B6%88%E6%81%AF",
+        url="https://work.weixin.qq.com/api/doc/90000/90135/90236#文件消息",
         description="详情"
     )
 
