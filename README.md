@@ -158,17 +158,14 @@ corpsecret 其实是 自建或内置应用(agent) 对应的 Secret，起这个�
     corpsecret = os.environ.get("CORPSECRET")
     agentid = os.environ.get("agentid")
 
-    #发送图文信息
     news_articles1 = work_wechat.NewsArticle(
         picurl="http://wwcdn.weixin.qq.com/node/wwnl/wwnl/style/images/independent/favicon/favicon_48h$c976bd14.png",
         title="图文信息发送测试",
-        
-        url="https://work.weixin.qq.com/api/doc/90000/90135/90236#%E6%96%87%E4%BB%B6%E6%B6%88%E6%81%AF",
+        url="https://work.weixin.qq.com/api/doc/90000/90135/90236#文本消息",
         description="详情"
     )
 
     touser = 'Jense'
-
     ww.message_send(agentid=agentid, msgtype="news", touser=touser, news_articles=(news_articles1))
     
     
