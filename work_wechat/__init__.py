@@ -4,10 +4,8 @@ import logging
 import time
 import typing
 import urllib.parse
-
 import requests
-import requests_toolbelt
-import collections
+import mimetypes
 
 
 class LikeDict(object):
@@ -65,11 +63,25 @@ class MsgType:
     FILE = "file"
     NEWS = "news"
     VIDEO = "video"
+    VOICE = "voice"
 
     TEXTCARD = "textcard"
     MPNEWS = "mpnews"
     MARKDOWN = "markdown"
     TASKCARD = "taskcard"
+
+
+MIMETYPE2WWTYPE = {
+
+    "image/jpeg": "image",
+
+    "audio/amr": "voice",
+
+    "video/mp4": "video",
+
+}
+
+DEFAULT_CONTENT_TYPE = 'file'
 
 
 class NewsArticle(LikeDict):
@@ -88,11 +100,10 @@ class NewsArticle(LikeDict):
 class Media(object):
     """https://work.weixin.qq.com/api/doc/90000/90135/90253#临时媒体类型"""
 
-    def __init__(self, file_path: str, file_name: str, file_type):
-        self.file_path = file_path
-
+    def __init__(self, file_name: str, file_data: typing.BinaryIO):
         self.file_name = file_name
-        self.file_type = file_type
+        self.file_data = file_data
+        self.file_type = mimetypes.guess_type(file_name)[0]
 
 
 class Video(LikeDict):
@@ -106,7 +117,7 @@ class Video(LikeDict):
         super().__init__(**kwargs)
 
 
-class Btn(LikeDict):
+class TaskCardBtn(LikeDict):
     """https://work.weixin.qq.com/api/doc/90000/90135/90253#按键类型"""
 
     def __init__(self, **kwargs):
@@ -160,6 +171,9 @@ class MpNew(LikeDict):
         self.digest = None
 
         super().__init__(**kwargs)
+
+
+mimetypes.add_type("audio/amr", ".amr")
 
 
 class WorkWeChat(object):
@@ -220,39 +234,6 @@ class WorkWeChat(object):
         if rs["errcode"] not in errcodes_accepted:
             raise WorkWeChatException(errcode=rs["errcode"], errmsg=rs["errmsg"], rs=rs)
 
-        return rs
-
-    def _post_form_data(
-            self,
-            path: str,
-            media: Media,
-            params_qs: dict = None,
-            errcodes_accepted: typing.Tuple[int, ...] = None,
-            auto_update_token: bool = True,
-    ) -> dict:
-
-        # https://work.weixin.qq.com/api/doc/90000/90135/90253
-        if not errcodes_accepted:
-            errcodes_accepted = (ErrCode.SUCCESS,)
-        if not params_qs:
-            params_qs = dict()
-
-        if auto_update_token:
-            params_qs["access_token"] = self.get_access_token()
-
-        qs = urllib.parse.urlencode(params_qs)
-
-        url = self._url_prefix + path + "?" + qs
-
-        m = requests_toolbelt.multipart.MultipartEncoder(
-            fields={'media': (media.file_name, open(media.file_path + media.file_name, 'rb'), '', {})},
-        )
-
-        r = requests.post(url=url, data=m, headers={'Content-Type': m.content_type})
-
-        rs = r.json()
-        if rs["errcode"] not in errcodes_accepted:
-            raise WorkWeChatException(errcode=rs["errcode"], errmsg=rs["errmsg"], rs=rs)
         return rs
 
     def gettoken(self) -> dict:
@@ -1008,7 +989,7 @@ class WorkWeChat(object):
         """
         https://work.weixin.qq.com/api/doc/90000/90135/90253
         """
-        params_qs = dict(type=media.file_type, )
+        params_qs = dict(type=MIMETYPE2WWTYPE.get(media.file_type, DEFAULT_CONTENT_TYPE))
 
         """
         POST https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=accesstoken001&type=file HTTP/1.1
@@ -1021,34 +1002,51 @@ class WorkWeChat(object):
         ---------------------------acebdf13572468--
 
         """
-        rs = self._post_form_data(
-            path="/media/upload",
-            media=media,
-            params_qs=params_qs,
-
+        params_qs["access_token"] = self.get_access_token()
+        qs = urllib.parse.urlencode(params_qs)
+        url = self._url_prefix + "/media/upload" + "?" + qs
+        files = {
+            "media": (media.file_name, media.file_data, media.file_data)
+        }
+        r = requests.post(
+            url=url,
+            files=files,
         )
+        """
+        {
+           "errcode": 0,
+           "errmsg": ""，
+           "type": "image",
+           "media_id": "1G6nrLmr5EC3MMb_-zK1dDdzmd0p7cNliYu9V5w7o8K0",
+           "created_at": "1380000000"
+        }
+        """
+        rs = r.json()
+
+        if rs["errcode"] is not ErrCode.SUCCESS:
+            raise WorkWeChatException(errcode=rs["errcode"], errmsg=rs["errmsg"], rs=rs)
 
         return rs['media_id']
 
     def message_send(
             self,
             msgtype: str,
-            agentid: str,
+            agentid: int,
             content: str = None,
             media_id: str = None,
             video: Video = None,
             textcard: TextCard = None,
-            news_articles: typing.Tuple[NewsArticle] = None,
-            mpnews_articles: typing.Tuple[MpNew] = None,
+            news_articles: typing.Tuple[NewsArticle, ...] = None,
+            mpnews_articles: typing.Tuple[MpNew, ...] = None,
             taskcard: TaskCard = None,
-            touser: str = None,
+            touser: typing.Tuple[str, ...] = None,
             toparty: str = None,
             totag: str = None,
             safe: int = 0,
             enable_id_trans: int = 0,
             enable_duplicate_check: int = 0,
             duplicate_check_interval: int = 1800
-    ):
+    ) -> str:
 
         """
         https://work.weixin.qq.com/api/doc/90000/90135/90236
@@ -1058,7 +1056,8 @@ class WorkWeChat(object):
             agentid=agentid,
             enable_duplicate_check=enable_duplicate_check,
             enable_id_trans=enable_id_trans,
-            duplicate_check_interval=duplicate_check_interval
+            duplicate_check_interval=duplicate_check_interval,
+            safe=safe
         )
 
         object_type_dict = dict(
@@ -1071,20 +1070,16 @@ class WorkWeChat(object):
 
         if msgtype == MsgType.TEXT or msgtype == MsgType.MARKDOWN:
             data[msgtype] = dict(content=content)
-        elif msgtype == MsgType.VIDEO and media_id is not None:
-            data[msgtype] = dict(media_id=media_id)
-        elif msgtype == MsgType.FILE or msgtype == MsgType.IMAGE:
+        elif msgtype == MsgType.FILE or msgtype == MsgType.IMAGE or msgtype == MsgType.VOICE:
             data[msgtype] = dict(media_id=media_id)
         elif msgtype == MsgType.NEWS or msgtype == MsgType.MPNEWS:
-            if isinstance(object_type_dict[msgtype], collections.Iterable):
-                data[msgtype] = dict(articles=[i.to_dict() for i in object_type_dict[msgtype]])
-            else:
-                data[msgtype] = dict(articles=[object_type_dict[msgtype].to_dict()])
+            data[msgtype] = dict(articles=[i.to_dict() for i in object_type_dict[msgtype]])
         else:
             data[msgtype] = object_type_dict[msgtype].to_dict()
 
         if touser:
-            data["touser"] = touser
+            user = [user + '|' for user in touser]
+            data["touser"] = ''.join(user)
         if toparty:
             data["toparty"] = toparty
         if totag:
@@ -1111,8 +1106,25 @@ class WorkWeChat(object):
             path="/message/send",
             params_post=data,
         )
+        """
+         {
+           "errcode" : 0,
+           "errmsg" : "ok",
+           "invaliduser" : "userid1|userid2",
+           "invalidparty" : "partyid1|partyid2",
+           "invalidtag": "tagid1|tagid2"
+         }
+        """
 
-    def update_taskcard(self, userids: typing.Tuple[str, ...], agentid: int, task_id: str, clicked_key: str):
+        return rs["invaliduser"]
+
+    def update_taskcard(
+            self,
+            userids: typing.Tuple[str, ...],
+            agentid: int,
+            task_id: str,
+            clicked_key: str
+    ) -> typing.List[str]:
         """
         https://work.weixin.qq.com/api/doc/90000/90135/91579
         """
@@ -1132,8 +1144,16 @@ class WorkWeChat(object):
             params_post=params_post,
             errcodes_accepted=errcodes_accepted,
         )
+        """
+         {
+           "errcode" : 0,
+           "errmsg" : "ok",
+           "invaliduser" : ["userid1","userid2"], // 不区分大小写，返回的列表都统一转为小写
+         }
+        """
+        return rs["invaliduser"]
 
-    def message_get_statistics(self, time_type: int = 0):
+    def message_get_statistics(self, time_type: int = 0) -> typing.List[dict]:
         """
         https://work.weixin.qq.com/api/doc/90000/90135/92369
         """
@@ -1149,7 +1169,6 @@ class WorkWeChat(object):
             path="/message/get_statistics",
             params_post=params_post
         )
-        # 返回结果
         """
         {
            "errcode" : 0,
@@ -1168,5 +1187,4 @@ class WorkWeChat(object):
            ]
         }
         """
-        data = rs["statistics"]
-        return data
+        return rs["statistics"]
